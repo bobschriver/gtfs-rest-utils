@@ -28,7 +28,17 @@ class GTFSCSVParser(object):
         return {'agencies' : self.agencies}
 
     def get_agency_id_by_name(self, agency_name):
-        return self.agency_id_by_name[agency_name]
+        try:
+            agency_id = self.agency_id_by_name[agency_name]
+            return {
+                    'status': 'Success',
+                    'agency_id': agency_id
+                    }
+        except KeyError as e:
+            return {
+                    'status': 'Error',
+                    'error': e
+                    }
     
     def parse_routes_file(self, routes_filename):
         self.route_id_by_name = {}
@@ -53,7 +63,17 @@ class GTFSCSVParser(object):
                 self.route_id_by_name[agency_id][route_name] = route_id
 
     def get_route_id_by_name(self, agency_id, route_name):
-        return self.route_id_by_name[agency_id][route_name]
+        try:
+            route_id = self.route_id_by_name[agency_id][route_name]
+            return {
+                    'status': 'Success',
+                    'route_id': route_id
+                    }
+        except KeyError as e:
+            return {
+                    'status': 'Error',
+                    'error': e
+                    }
 
     def parse_stops_file(self, stops_filename):
         self.stop_ids_by_name = {}
@@ -77,7 +97,17 @@ class GTFSCSVParser(object):
                     self.stop_ids_by_name[stop_name].append(stop_id)
 
     def get_stop_ids_by_name(self, stop_name):
-        return self.stop_ids_by_name[stop_name]
+        try:
+            stop_ids = self.stop_ids_by_name[stop_name]
+            return {
+                    'status': 'Success',
+                    'stop_ids': stop_ids
+                    }
+        except KeyError as e:
+            return {
+                    'status': 'Error',
+                    'error': e
+                    }
 
     def parse_trips_file(self, trips_filename):
         self.trip_ids_by_route_id = {}
@@ -219,9 +249,15 @@ class GTFSCSVParser(object):
                     break
 
             if found_first_stop_id and found_last_stop_id:
-                return trip_id
+                return {
+                        'status': 'Success',
+                        'trip_id': trip_id
+                        }
 
-        return -1
+        return {
+                'status': 'Error',
+                'error': 'Unable to find trip for stop ids and route'
+                }
 
     def find_closest_shape_index(self, stop, shape_for_trip, curr_shape_index):
         valid_shapes = shape_for_trip[curr_shape_index:]
@@ -242,7 +278,8 @@ class GTFSCSVParser(object):
         curr_shape_index = 0
         prev_shape_index = 0
 
-        found_first_stop_id = False;
+        found_first_stop_id = False
+        found_last_stop_id = False
 
         shape = []
 
@@ -267,32 +304,57 @@ class GTFSCSVParser(object):
 
 
             if stop['stop_id'] == last_stop_id:
+                found_last_stop_id = True
                 break
 
-        return {"`shape": shape}
+        if found_first_stop_id and found_last_stop_id:
+            return {
+                    'status': 'Success',
+                    'shape': shape
+                    }
+        else:
+            return {
+                    'status': 'Error',
+                    'error': 'Unable to find stop ids for trip'
+                    }
 
+'''
 parser = GTFSCSVParser()
 parser.parse_agency_file('consolidated/agency.txt')
-agency_id = parser.get_agency_id_by_name('Metro Transit')
+agency_json = parser.get_agency_id_by_name('balhsadnas')
+print(agency_json)
+agency_json = parser.get_agency_id_by_name('Metro Transit')
+print(agency_json)
+
+if agency_json['status'] == 'Success':
+    agency_id = agency_json['agency_id']
 
 parser.parse_routes_file('consolidated/routes.txt')
-route_id = parser.get_route_id_by_name(agency_id, '1')
+route_json = parser.get_route_id_by_name(agency_id, '1')
+print(route_json)
+if route_json['status'] == 'Success':
+    route_id = route_json['route_id']
 
 parser.parse_trips_file('consolidated/trips.txt')
-trip_ids = parser.get_trip_ids_by_route_id(route_id)
 
 parser.parse_stops_file('consolidated/stops.txt')
-first_stop_ids = parser.get_stop_ids_by_name('10th Ave W & W Howe St')
-print(first_stop_ids)
-last_stop_ids = parser.get_stop_ids_by_name('3rd Ave & Union St')
-print(last_stop_ids)
+first_stop_json = parser.get_stop_ids_by_name('10th Ave W & W Howe St')
+print(first_stop_json)
+if first_stop_json['status'] == 'Success':
+    first_stop_ids = first_stop_json['stop_ids']
+
+last_stop_json = parser.get_stop_ids_by_name('3rd Ave & Union St')
+print(last_stop_json)
+if last_stop_json['status'] == 'Success':
+    last_stop_ids = last_stop_json['stop_ids']
 
 parser.parse_trip_shape('consolidated/trips.txt', 'consolidated/stops.txt', 'consolidated/stop_times.txt', 'consolidated/shapes.txt')
 
 for first_stop_id in first_stop_ids:
     for last_stop_id in last_stop_ids:
-        trip_id = parser.get_first_trip_between_stops(first_stop_id, last_stop_id, route_id)
-        print(trip_id)
-        if trip_id != -1:
+        trip_json = parser.get_first_trip_between_stops(first_stop_id, last_stop_id, route_id)
+        print(trip_json)
+        if trip_json['status'] == 'Success':
+            trip_id = trip_json['trip_id']
             print(parser.get_shape_between_stops_by_trip(first_stop_id, last_stop_id, trip_id))
-    
+''' 
