@@ -47,6 +47,15 @@ def shape_between_stops():
 
     return jsonify(gtfs_parser.get_shape_between_stops_by_trip(first_stop_id, last_stop_id, trip_id))
 
+@app.route('/api/v1.0/shape', methods=['GET'])
+def shape():
+    agency_name = request.args.get('agency_name')
+    route_name = request.args.get('route_name')
+    first_stop_name = request.args.get('first_stop_name')
+    last_stop_name = request.args.get('last_stop_name')
+
+    return jsonify(gtfs_parser.get_shape(agency_name, route_name, first_stop_name, last_stop_name))
+
 def main(argv):
     opts, args = getopt.getopt(argv, "", ["agency-filename=", "routes-filename=", "stops-filename=", "trips-filename=", "stop_times-filename=", "shapes-filename="])
 
